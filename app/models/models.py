@@ -13,6 +13,16 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class MerchantApiKey(Base):
+    __tablename__ = "merchant_api_keys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    merchant_name = Column(String, nullable=False)
+    api_key = Column(String, unique=True, index=True, nullable=False) # e.g. sk_live_bdv_123456789
+    webhook_url = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 class Order(Base):
     __tablename__ = "orders"
 
@@ -25,10 +35,14 @@ class Order(Base):
     customer_phone = Column(String, nullable=True)
     status = Column(String, default="PENDING_PAYMENT") # PENDING_PAYMENT, PAID, CANCELLED
     matched_payment_id = Column(Integer, ForeignKey("payment_notifications.id"), nullable=True)
+    merchant_id = Column(Integer, ForeignKey("merchant_api_keys.id"), nullable=True)
+    webhook_url = Column(String, nullable=True)
+    webhook_status = Column(String, default="NONE") # NONE, PENDING, SENT, FAILED
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     payment = relationship("PaymentNotification", foreign_keys=[matched_payment_id])
+    merchant = relationship("MerchantApiKey", foreign_keys=[merchant_id])
 
 class PaymentNotification(Base):
     __tablename__ = "payment_notifications"
@@ -44,4 +58,5 @@ class PaymentNotification(Base):
     captured_at = Column(DateTime, default=datetime.utcnow)
 
     order = relationship("Order", foreign_keys=[matched_order_id])
+
 

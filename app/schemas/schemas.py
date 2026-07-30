@@ -80,6 +80,45 @@ class OrderMatchRequest(BaseModel):
     order_id: int
     payment_id: int
 
+# --- Merchant / API Key Schemas ---
+class MerchantCreate(BaseModel):
+    merchant_name: str = Field(..., description="Nombre de la empresa o sistema cliente")
+    webhook_url: Optional[str] = Field(None, description="URL HTTP POST donde recibir notificaciones de pago")
+
+class MerchantResponse(BaseModel):
+    id: int
+    merchant_name: str
+    api_key: str
+    webhook_url: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- Client API Gateway Schemas ---
+class ClientOrderCreate(BaseModel):
+    order_code: str = Field(..., description="Código único de la factura u orden (ej: FACT-2026-001)")
+    expected_reference: str = Field(..., description="Referencia de Pago Móvil introducida por el comprador (completa o últimos dígitos)")
+    expected_amount: float = Field(..., description="Monto en Bs. esperado para la transacción")
+    expected_bank: Optional[str] = Field(None, description="Banco emisor (ej: 0102 para BDV)")
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    webhook_url: Optional[str] = Field(None, description="URL Webhook específica para esta orden (opcional)")
+
+class ClientPaymentVerifyRequest(BaseModel):
+    reference_number: str = Field(..., description="Número de referencia de Pago Móvil")
+    amount: float = Field(..., description="Monto en Bs")
+
+class ClientPaymentVerifyResponse(BaseModel):
+    is_verified: bool
+    order_code: Optional[str] = None
+    status: str
+    reference_number: str
+    amount: float
+    bank_name: Optional[str] = None
+    payment_time: Optional[datetime] = None
+
 # --- Stats / Dashboard Schemas ---
 class StatsSummaryResponse(BaseModel):
     total_captured_count: int
@@ -88,4 +127,5 @@ class StatsSummaryResponse(BaseModel):
     pending_orders_count: int
     total_collected_bs: float
     auto_match_rate_percentage: float
+
 

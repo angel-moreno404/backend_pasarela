@@ -5,7 +5,7 @@ from app.core.config import settings
 from app.core.database import engine, Base, AsyncSessionLocal
 from app.core.security import get_password_hash
 from app.models.models import User
-from app.api.v1 import auth, payments, orders, ws, stats
+from app.api.v1 import auth, payments, orders, ws, stats, client, merchants
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -27,6 +27,17 @@ async def startup():
     # Inicializar tablas en la base de datos automáticamente al arrancar
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Intentar añadir columnas si la base de datos SQLite ya existía con esquema previo
+        from sqlalchemy import text
+        for statement in [
+            "ALTER TABLE orders ADD COLUMN merchant_id INTEGER REFERENCES merchant_api_keys(id);",
+            "ALTER TABLE orders ADD COLUMN webhook_url VARCHAR;",
+            "ALTER TABLE orders ADD COLUMN webhook_status VARCHAR DEFAULT 'NONE';"
+        ]:
+            try:
+                await conn.execute(text(statement))
+            except Exception:
+                pass # La columna ya existe
 
     # Crear usuario administrador por defecto si la BD está vacía
     async with AsyncSessionLocal() as db:
@@ -46,6 +57,8 @@ async def startup():
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(payments.router, prefix=settings.API_V1_STR)
 app.include_router(orders.router, prefix=settings.API_V1_STR)
+app.include_router(client.router, prefix=settings.API_V1_STR)
+app.include_router(merchants.router, prefix=settings.API_V1_STR)
 app.include_router(stats.router, prefix=settings.API_V1_STR)
 app.include_router(ws.router, prefix=settings.API_V1_STR)
 

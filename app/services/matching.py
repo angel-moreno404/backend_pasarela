@@ -3,6 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.models.models import Order, PaymentNotification
 
+from app.services.webhook_service import send_order_webhook
+
 def generate_notification_hash(bank_name: str, reference_number: str, amount: float, raw_text: str) -> str:
     """
     Genera un hash SHA256 único a partir de los datos clave de la notificación
@@ -45,6 +47,8 @@ async def auto_match_payment(db: AsyncSession, payment: PaymentNotification) -> 
             payment.matched_order_id = order.id
 
             await db.flush()
+            # Disparar webhook si el cliente tiene URL configurada
+            await send_order_webhook(db, order, payment)
             return True
 
     return False
